@@ -2,14 +2,18 @@ package com.hmdp.controller;
 
 
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.entity.Shop;
 import com.hmdp.service.IShopService;
 import com.hmdp.utils.SystemConstants;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import javax.annotation.Resource;
+import javax.security.auth.kerberos.KerberosKey;
 
 /**
  * <p>
@@ -26,18 +30,23 @@ public class ShopController {
     @Resource
     public IShopService shopService;
 
+    @Autowired
+    private StringRedisTemplate stringRedisTemplate;
+
     /**
      * 根据id查询商铺信息
+     *
      * @param id 商铺id
      * @return 商铺详情数据
      */
     @GetMapping("/{id}")
-    public Result queryShopById(@PathVariable("id") Long id) {
-        return Result.ok(shopService.getById(id));
+    public Result queryShopById(@PathVariable("id") Long id) throws InterruptedException {
+        return Result.ok(shopService.queryById(id));
     }
 
     /**
      * 新增商铺信息
+     *
      * @param shop 商铺数据
      * @return 商铺id
      */
@@ -51,19 +60,20 @@ public class ShopController {
 
     /**
      * 更新商铺信息
+     *
      * @param shop 商铺数据
      * @return 无
      */
     @PutMapping
     public Result updateShop(@RequestBody Shop shop) {
         // 写入数据库
-        shopService.updateById(shop);
-        return Result.ok();
+        return shopService.update(shop);
     }
 
     /**
      * 根据商铺类型分页查询商铺信息
-     * @param typeId 商铺类型
+     *
+     * @param typeId  商铺类型
      * @param current 页码
      * @return 商铺列表
      */
@@ -82,7 +92,8 @@ public class ShopController {
 
     /**
      * 根据商铺名称关键字分页查询商铺信息
-     * @param name 商铺名称关键字
+     *
+     * @param name    商铺名称关键字
      * @param current 页码
      * @return 商铺列表
      */
