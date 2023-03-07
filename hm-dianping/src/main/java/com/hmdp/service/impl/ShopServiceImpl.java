@@ -45,7 +45,7 @@ public class ShopServiceImpl extends ServiceImpl<ShopMapper, Shop> implements IS
         // 互斥锁解决缓存击穿
 //        Shop shop = queryWithMutex(id);
         // 使用工具类来实现查询
-        Shop shop = cacheClient.queryWithLogicExpire(CACHE_SHOP_KEY,id, Shop.class, this::getById,20L,TimeUnit.MINUTES);
+        Shop shop = cacheClient.queryWithPassThrough(CACHE_SHOP_KEY,id, Shop.class, this::getById,20L,TimeUnit.MINUTES);
         if (shop == null) {
             return Result.fail("店铺不存在");
         }

@@ -24,6 +24,8 @@ import static com.hmdp.utils.RedisConstants.LOCK_SHOP_KEY;
 @Component
 @Slf4j
 public class CacheClient {
+
+
     private static final ExecutorService CACHE_REBUILD_EXECUTOR = Executors.newFixedThreadPool(10);
 
     @Autowired
