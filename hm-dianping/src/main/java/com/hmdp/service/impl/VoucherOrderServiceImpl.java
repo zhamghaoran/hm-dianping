@@ -45,7 +45,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
     private RedissonClient redissonClient;
 
     @Override
-    public Result seckillVoucher(Long voucherId) {
+    public Result seckillVoucher(Long voucherId) throws InterruptedException {
         // 查询优惠券
         SeckillVoucher voucher = seckillVoucherService.getById(voucherId);
         // 判断秒杀是否开始结束
@@ -65,7 +65,7 @@ public class VoucherOrderServiceImpl extends ServiceImpl<VoucherOrderMapper, Vou
         // 创建锁对象
         SimpleRedisLock simpleRedisLock = new SimpleRedisLock(stringRedisTemplate, "order" + userId);
         RLock lock = redissonClient.getLock("order" + userId);
-        boolean isLock = lock.tryLock();
+        boolean isLock = lock.tryLock(1,TimeUnit.SECONDS);
         if (!isLock) {
             // 锁失败，返回或重试
             return Result.fail("一个人只允许下一单");
