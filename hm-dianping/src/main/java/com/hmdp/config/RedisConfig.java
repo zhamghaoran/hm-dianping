@@ -24,7 +24,7 @@ public class RedisConfig {
     public RedissonClient redissonClient() {
         Config config = new Config();
         // 设置单节点的redis地址
-        config.useSingleServer().setAddress(AGREEMENT + host + ":" + port);
+        config.useSingleServer().setAddress(AGREEMENT + host + ":" + port).setPassword("153359157aA@");
         return Redisson.create(config);
     }
 }
