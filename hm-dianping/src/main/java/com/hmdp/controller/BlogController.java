@@ -1,6 +1,7 @@
 package com.hmdp.controller;
 
 
+import cn.hutool.core.bean.BeanUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.hmdp.dto.Result;
 import com.hmdp.dto.UserDTO;
@@ -77,4 +78,13 @@ public class BlogController {
         });
         return Result.ok(records);
     }
+
+    // 根据id查询博主探店笔记
+    @GetMapping("/of/user")
+    public Result queryBlogByUserId(@RequestParam("lastId") Long max,@RequestParam(value = "offset",defaultValue = 0) Integer offset) {
+        return blogService.queryBlogOfFollow(max,offset);
+
+    }
+
+
 }
