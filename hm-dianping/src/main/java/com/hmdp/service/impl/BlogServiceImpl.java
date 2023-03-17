@@ -4,6 +4,7 @@ import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.BooleanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.hmdp.dto.Result;
+import com.hmdp.dto.ScrollResult;
 import com.hmdp.dto.UserDTO;
 import com.hmdp.entity.Blog;
 import com.hmdp.mapper.BlogMapper;
@@ -15,9 +16,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.data.redis.core.ZSetOperations;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import static com.hmdp.utils.RedisConstants.BLOG_LIKED_KEY;
@@ -25,7 +24,7 @@ import static com.hmdp.utils.RedisConstants.FEED_KEY;
 
 /**
  * <p>
- *  服务实现类
+ * 服务实现类
  * </p>
  *
  * @author 虎哥
@@ -55,16 +54,16 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         String key = BLOG_LIKED_KEY + id;
         Boolean isMember = stringRedisTemplate.opsForSet().isMember(key, userId.toString());
         if (BooleanUtil.isFalse(isMember)) {
-            boolean isSuccess = update().setSql("liked = liked + 1").eq("id" ,id).update();
+            boolean isSuccess = update().setSql("liked = liked + 1").eq("id", id).update();
             if (isSuccess) {
-                stringRedisTemplate.opsForZSet().add(key,userId.toString(),System.currentTimeMillis());
+                stringRedisTemplate.opsForZSet().add(key, userId.toString(), System.currentTimeMillis());
                 return Result.ok("点赞成功");
             }
             return Result.fail("点赞失败");
         } else {
             boolean isSuccess = update().setSql("liked = liked - 1").eq("id", id).update();
             if (isSuccess) {
-                stringRedisTemplate.opsForZSet().remove(key,userId.toString());
+                stringRedisTemplate.opsForZSet().remove(key, userId.toString());
                 return Result.ok("点赞取消");
             }
             return Result.fail("点赞取消失败");
@@ -82,7 +81,7 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
         // 解析出其中的用户id
         // String转化成Long
         List<Long> ids = top5.stream().map(Long::valueOf).collect(Collectors.toList());
-        String idStr = StrUtil.join(",",ids);
+        String idStr = StrUtil.join(",", ids);
         List<UserDTO> userDTOS = userService.query()
                 .in("id", ids)
                 .last("ORDER BY FIELD(id," + idStr + ")").list()
@@ -103,6 +102,40 @@ public class BlogServiceImpl extends ServiceImpl<BlogMapper, Blog> implements IB
             return Result.ok();
         }
         // 解析数据：blogId，minTime，offset
+        List<Long> ids = new ArrayList<>(typedTuples.size());
+        long minTime = 0; // 2
+        int os = 1;
+        for (ZSetOperations.TypedTuple<String> tuple : typedTuples) {  // 5 4 4 2 2
+            // 获取id
+            ids.add(Long.valueOf(Objects.requireNonNull(tuple.getValue())));
+            long time = Objects.requireNonNull(tuple.getScore()).longValue();
+            if (time == minTime) {
+                os ++;
+            } else {
+                minTime = time;
+                os = 1;
+            }
+        }
+        os = minTime == max ? os : os + offset;
+        // 根据id查询blog
+        String idStr = StrUtil.join(",",ids);
+        List<Blog> blogs = query().in("id", ids).last("ORDER BY FIELD(id," + idStr + ")").list();
+        for (Blog blog : blogs) {
+            // 查询blog有关的用户
+            queryBlogUser(blog);
+            // 查询blog是否被点赞
+            isBlogLiked(blog);
+        }
+        // 封装并返回
+        ScrollResult scrollResult = new ScrollResult();
+        scrollResult.setList(blogs);
+        scrollResult.setOffset(os);
+        scrollResult.setMinTime(minTime);
+        return Result.ok(scrollResult);
+    }
+
+    private void queryBlogUser(Blog blog) {
+
     }
 
     private void isBlogLiked(Blog blog) {
